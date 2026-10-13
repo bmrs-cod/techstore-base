@@ -1,3 +1,4 @@
+
 import { useState } from 'react'
 import { Link } from 'react-router'
 import SugestaoItem from '../components/SugestaoItem'
@@ -12,14 +13,22 @@ export default function Carrinho({ carrinho, produtos, clienteAtual, onAdicionar
 
   const itens = agruparItens(carrinho)
   const total = calcularTotal(carrinho)
-  const totalComDesconto = cupomAplicado ? total * (1 - cupomAplicado.desconto) : total
+  const totalComDesconto = cupomAplicado
+    ? total * (1 - cupomAplicado.desconto)
+    : total
 
   const sugestoes = produtos
-    .filter((produto) => !carrinho.find((item) => item.id === produto.id))
+    .filter((produto) =>
+      produto.estoque > 0 &&
+      produto.price !== null &&
+      Number.isFinite(Number(produto.price)) &&
+      !carrinho.some((item) => item.id === produto.id)
+    )
     .slice(0, 3)
 
   function aplicarCupom(evento) {
     evento.preventDefault()
+
     const resultado = validarCupom(codigoCupom, clienteAtual)
 
     if (resultado.valido) {
@@ -56,12 +65,20 @@ export default function Carrinho({ carrinho, produtos, clienteAtual, onAdicionar
               <div className="item-imagem-moldura">
                 <img src={item.produto.image} alt={item.produto.title} />
               </div>
+
               <div className="item-info">
                 <p className="item-titulo">{item.produto.title}</p>
-                <p className="item-preco">R$ {item.produto.price}</p>
+                <p className="item-preco">
+                  {formatarPreco(item.produto.price)}
+                </p>
               </div>
+
               <span className="item-quantidade">{item.quantidade} un.</span>
-              <button className="botao-texto" onClick={() => onRemover(item.produto.id)}>
+
+              <button
+                className="botao-texto"
+                onClick={() => onRemover(item.produto.id)}
+              >
                 Remover 1
               </button>
             </li>
@@ -75,6 +92,7 @@ export default function Carrinho({ carrinho, produtos, clienteAtual, onAdicionar
             <label htmlFor="cupom" className="rotulo">
               Cupom de desconto
             </label>
+
             <div className="cupom-campo">
               <input
                 id="cupom"
@@ -82,9 +100,14 @@ export default function Carrinho({ carrinho, produtos, clienteAtual, onAdicionar
                 onChange={(evento) => setCodigoCupom(evento.target.value)}
                 placeholder="Digite o código"
               />
-              <button className="botao botao-secundario">Aplicar</button>
+              <button className="botao botao-secundario">
+                Aplicar
+              </button>
             </div>
-            {mensagemCupom && <p className="mensagem-cupom">{mensagemCupom}</p>}
+
+            {mensagemCupom && (
+              <p className="mensagem-cupom">{mensagemCupom}</p>
+            )}
           </form>
 
           {cupomAplicado && (
@@ -93,6 +116,7 @@ export default function Carrinho({ carrinho, produtos, clienteAtual, onAdicionar
               <span>{cupomAplicado.desconto * 100}%</span>
             </p>
           )}
+
           <p className="total">
             <span>Total</span>
             <span>{formatarPreco(totalComDesconto)}</span>
@@ -101,9 +125,14 @@ export default function Carrinho({ carrinho, produtos, clienteAtual, onAdicionar
       </div>
 
       <h2>Você também pode gostar</h2>
+
       <div className="sugestoes">
         {sugestoes.map((produto) => (
-          <SugestaoItem key={produto.id} produto={produto} onAdicionar={onAdicionar} />
+          <SugestaoItem
+            key={produto.id}
+            produto={produto}
+            onAdicionar={onAdicionar}
+          />
         ))}
       </div>
     </section>

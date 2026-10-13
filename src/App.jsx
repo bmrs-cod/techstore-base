@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react'
 import { Routes, Route } from 'react-router'
 import Header from './components/Header'
@@ -24,51 +25,99 @@ export default function App() {
       .catch(() => setErro('Não foi possível carregar os produtos.'))
       .finally(() => setCarregando(false))
 
-    buscarClientes().then((dados) => {
-      setClientes(dados)
-      if (dados.length > 0) setClienteAtualId(dados[0].id)
-    })
+    buscarClientes()
+      .then((dados) => {
+        setClientes(dados)
+        if (dados.length > 0) {
+          setClienteAtualId(dados[0].id)
+        }
+      })
+      .catch(() => setClientes([]))
   }, [])
 
   function adicionarAoCarrinho(produto) {
-    setCarrinho(carrinho.concat(produto))
+    if (
+      produto.price === null ||
+      produto.price === undefined ||
+      produto.price === '' ||
+      !Number.isFinite(Number(produto.price)) ||
+      Number(produto.price) < 0
+    ) {
+      return
+    }
+
+    if (produto.estoque <= 0) {
+      return
+    }
+
+    setCarrinho((anterior) => {
+      const quantidade = anterior.filter(
+        (item) => item.id === produto.id
+      ).length
+
+      if (quantidade >= produto.estoque) {
+        return anterior
+      }
+
+      return [...anterior, produto]
+    })
   }
 
   function removerUmaUnidade(produtoId) {
-    // Remove só a primeira unidade encontrada do produto
-    let removido = false
-    setCarrinho(
-      carrinho.filter((produto) => {
-        if (!removido && produto.id === produtoId) {
-          removido = true
-          return false
-        }
-        return true
-      })
-    )
+    setCarrinho((anterior) => {
+      const indice = anterior.findIndex(
+        (produto) => produto.id === produtoId
+      )
+
+      if (indice === -1) {
+        return anterior
+      }
+
+      return anterior.filter((_, i) => i !== indice)
+    })
   }
 
-  const clienteAtual = clientes.find((cliente) => cliente.id === clienteAtualId)
+  const clienteAtual = clientes.find(
+    (cliente) => cliente.id === clienteAtualId
+  )
 
   return (
     <div className="app">
       <RolarParaTopo />
+
       <Header carrinho={carrinho} clienteAtual={clienteAtual} />
 
       <main className="conteudo">
-        {carregando && <p className="aviso">Carregando produtos...</p>}
-        {erro && <p className="aviso aviso-erro">{erro}</p>}
+        {carregando && (
+          <p className="aviso">Carregando produtos...</p>
+        )}
+
+        {erro && (
+          <p className="aviso aviso-erro">{erro}</p>
+        )}
 
         {!carregando && !erro && (
           <Routes>
             <Route
               path="/"
-              element={<Loja produtos={produtos} onAdicionar={adicionarAoCarrinho} />}
+              element={
+                <Loja
+                  produtos={produtos}
+                  onAdicionar={adicionarAoCarrinho}
+                />
+              }
             />
+
             <Route
               path="/produto/:id"
-              element={<PaginaProduto produtos={produtos} onAdicionar={adicionarAoCarrinho} />}
+              element={
+                <PaginaProduto
+                  produtos={produtos}
+                  onAdicionar={adicionarAoCarrinho}
+                />
+              }
             />
+
             <Route
               path="/carrinho"
               element={
@@ -81,7 +130,11 @@ export default function App() {
                 />
               }
             />
-            <Route path="/estoque" element={<Estoque produtos={produtos} />} />
+
+            <Route
+              path="/estoque"
+              element={<Estoque produtos={produtos} />}
+            />
           </Routes>
         )}
       </main>
